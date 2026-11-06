@@ -14,10 +14,12 @@
 <div class="note">Выберите способ обработки и нажмите «Создать протокол». Воркфлоу в n8n должен быть опубликован/активирован.</div>
 <button type="submit" id="submit">Создать протокол →</button></fieldset></form><button type="button" id="recover" style="margin-top:12px;background:#edf4f0;color:#176958">Найти результат по номеру обработки</button></section>
 <section class="panel"><h2>Результат</h2><div class="state" role="status" aria-live="polite"><div class="icon" id="icon">↓</div><div class="status-title" id="title">Здесь появится ваш файл</div><p id="message">Заполните параметры слева и запустите создание протокола.</p><div class="timer" id="timer" hidden>00:00</div><a class="download" id="download" hidden>Скачать протокол и транскрибацию .zip</a></div><p id="jobId" hidden style="font-size:11px;overflow-wrap:anywhere;user-select:all;margin-bottom:14px"></p><button id="retry" hidden type="button" style="margin:12px 0">Проверить готовность снова</button><button id="newJob" hidden type="button" style="background:#edf4f0;color:#176958">Другая планёрка</button><details id="details" hidden><summary>Посмотреть текст</summary><pre id="preview"></pre></details></section></div>
-<footer>Ожидание не держит одно соединение: готовность проверяется каждые 10 секунд. Номер обработки сохраняется в этом браузере.<br>После перезапуска START.bat откройте страницу — проверка продолжится. Не очищайте данные сайта до скачивания результата.<br>Если результат долго не появляется, проверьте Executions в n8n: отсутствие архива само по себе не подтверждает, что обработка ещё идёт.</footer></main>
+<footer>Ожидание не держит одно соединение: готовность проверяется каждые 10 секунд. Номер обработки сохраняется в этом браузере.<br>После повторного открытия страницы проверка продолжится. Не очищайте данные сайта до скачивания результата.<br>Если результат долго не появляется, проверьте Executions в n8n: отсутствие архива само по себе не подтверждает, что обработка ещё идёт.</footer></main>
 <script>
 const $=id=>document.getElementById(id);
-const TOKEN='__LOCAL_TOKEN__', STORAGE='zoom-protocol-async-v1';
+const STORAGE='zoom-protocol-async-v1';
+const START_URL='https://n8n.transport1.ru/webhook/zoom-protocol';
+const STATUS_URL='https://n8n.transport1.ru/webhook/zoom-protocol-status';
 let job=null,polling=false,pollTimer=null,clock=null,objectUrl=null,startConfirmed=false;
 const today=new Date();$('date').value=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
 $('transcriptionMode').onchange=()=>{$('methodHint').textContent=$('transcriptionMode').value==='tracks'?'Отдельные аудиозаписи участников встречи.':'Общая запись встречи и расшифровка Zoom для сопоставления говорящих.';};
@@ -29,9 +31,44 @@ function busyUI(){
   $('title').textContent='Ожидаем результат';$('message').textContent='Проверяем, сохранён ли готовый архив. Страницу можно обновлять — новый запуск не создастся.';
   clearInterval(clock);const tick=()=>{const sec=Math.max(0,Math.floor((Date.now()-job.started)/1000));$('timer').textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');};tick();clock=setInterval(tick,1000);
 }
-async function api(url,options={}){
-  const response=await fetch(url,{...options,headers:{'Content-Type':'application/json','X-Local-Token':TOKEN,...(options.headers||{})}});
-  const data=await response.json();if(!response.ok)throw new Error(data.error||'Ошибка локального приложения.');return data;
+async function api(path,options={}){
+  const isStart=path==='/api/start';
+  const url=isStart?START_URL:STATUS_URL+path.slice('/api/status'.length);
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),30000);
+  try{
+    const request={method:isStart?'POST':'GET',credentials:'omit',cache:'no-store',signal:controller.signal};
+    if(isStart){
+      // A form request keeps fields in Webhook body without CORS preflight.
+      const payload=JSON.parse(options.body);
+      request.body=new URLSearchParams({
+        meeting_id:payload.meeting_id,date:payload.date,
+        transcription_mode:payload.transcription_mode,job_id:payload.job_id
+      });
+    }
+    const response=await fetch(url,request);
+    const raw=await response.text();
+    if(raw.length>15*1024*1024)throw new Error('Ответ n8n превышает 15 МБ.');
+    let data;
+    try{data=JSON.parse(raw);}catch{throw new Error('n8n вернул не JSON. Проверьте Respond to Webhook.');}
+    if(!response.ok)throw new Error(data.error||data.message||'Ошибка n8n: HTTP '+response.status);
+    if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('Неверный формат ответа n8n.');
+    if(data.job_id!==job?.job_id)throw new Error('Номер обработки в ответе n8n не совпадает с запросом.');
+    if(isStart&&data.status!=='accepted')throw new Error('n8n не подтвердил запуск. Нужен ответ accepted с job_id.');
+    if(!isStart&&!['processing','completed','failed'].includes(data.status))throw new Error('Неизвестный статус n8n.');
+    if(data.status==='completed'){
+      if(typeof data.file_base64!=='string'||!data.file_base64)throw new Error('В ответе n8n нет готового архива.');
+      let bytes;
+      try{bytes=atob(data.file_base64);}catch{throw new Error('Некорректный файл base64 в ответе n8n.');}
+      if(bytes.length>10*1024*1024)throw new Error('Архив превышает 10 МБ.');
+      if(!bytes.startsWith('PK\x03\x04'))throw new Error('Результат не похож на ZIP-архив. Проверьте Compression.');
+    }
+    return data;
+  }catch(error){
+    if(error.name==='AbortError')throw new Error('n8n не ответил за 30 секунд. Проверьте Executions и настройку быстрого ответа.');
+    if(error instanceof TypeError)throw new Error('Браузер не получил ответ n8n. Проверьте доступность n8n и Allowed Origins (CORS) для этого сайта.');
+    throw error;
+  }finally{clearTimeout(timeout);}
 }
 function stop(){polling=false;clearTimeout(pollTimer);clearInterval(clock);$('icon').classList.remove('spin');}
 function renderFile(data){
@@ -48,7 +85,7 @@ async function poll(){
     if(data.status==='failed'){stop();$('title').textContent='Ошибка обработки в n8n';$('message').textContent=data.error||'Проверьте Executions в n8n.';$('icon').textContent='!';$('retry').hidden=false;return;}
     $('title').textContent='Ожидаем готовый архив';
     $('message').textContent=startConfirmed?'Запуск подтверждён. Готовый архив ещё не сохранён. Проверяем каждые 10 секунд. Если в n8n выполнение завершилось ошибкой, проверьте Executions.':'Проверяем готовность по сохранённому номеру. Архива пока нет. Если запуск не начался или завершился ошибкой, проверьте Executions в n8n.';
-  }catch(error){$('title').textContent='Не удалось проверить готовность';$('message').textContent=error instanceof TypeError?'Нет связи с локальным приложением. Проверьте окно START.bat. Проверка повторится автоматически.':error.message;$('retry').hidden=false;}
+  }catch(error){$('title').textContent='Не удалось проверить готовность';$('message').textContent=error.message;$('retry').hidden=false;}
   if(Date.now()-job.started>=2*60*60*1000){stop();$('title').textContent='Архив пока не получен';$('message').textContent='Автопроверка приостановлена через 2 часа. Проверьте Executions в n8n. Кнопка ниже повторит только проверку готовности, без нового запуска.';$('icon').textContent='!';$('retry').hidden=false;return;}
   if(polling)pollTimer=setTimeout(poll,10000);
 }
@@ -67,7 +104,7 @@ $('form').onsubmit=async event=>{
   if(!/^\d{9,11}$/.test(meeting)){$('meeting').setCustomValidity('Введите номер Zoom: 9–11 цифр.');$('meeting').reportValidity();return;}
   job={job_id:crypto.randomUUID(),meeting_id:meeting,date:$('date').value,transcription_mode:$('transcriptionMode').value,started:Date.now()};persist();busyUI();$('title').textContent='Запускаем обработку';
   try{await api('/api/start',{method:'POST',body:JSON.stringify(job)});startConfirmed=true;}
-  catch(error){$('title').textContent='Подтверждение запуска не получено';$('message').textContent=error.message;$('retry').hidden=false;}
+  catch(error){$('title').textContent='Подтверждение запуска не получено';$('message').textContent=error.message+' Автоматический повтор запуска отключён: обработка могла начаться. Проверяем готовность по сохранённому номеру.';$('retry').hidden=false;}
   polling=true;pollTimer=setTimeout(poll,3000);
 };
 $('meeting').oninput=()=>$('meeting').setCustomValidity('');
