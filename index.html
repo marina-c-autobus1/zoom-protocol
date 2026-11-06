@@ -5,14 +5,15 @@
 <style>
 :root{font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;color:#182b33;background:#f3f5f4}*{box-sizing:border-box}body{margin:0}header{border-bottom:1px solid #dce3df;padding:22px max(24px,calc((100vw - 1080px)/2));display:flex;align-items:center;gap:12px;background:#fff}.brand{background:#176958;color:white;border-radius:12px;width:38px;height:38px;display:grid;place-items:center;font-size:22px}.tag{margin-left:auto;font-size:12px;color:#63736e}main{max-width:1080px;padding:54px 24px;margin:auto}.eyebrow{letter-spacing:2px;text-transform:uppercase;font-size:11px;font-weight:700;color:#176958}h1{font-size:clamp(30px,5vw,44px);line-height:1.16;letter-spacing:-1.5px;margin:12px 0}p{color:#63736e;margin:12px 0 28px}.grid{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;margin-top:32px}.panel{background:white;border:1px solid #dce3df;border-radius:20px;padding:30px}h2{font-size:18px;margin:0 0 24px}label{display:block;font-size:14px;font-weight:600;margin-bottom:7px}input,select{width:100%;font:inherit;border:1px solid #cbd7d1;border-radius:10px;background:#fff;padding:13px;color:#182b33}input:focus,select:focus{outline:3px solid #b9ddd0;border-color:#176958}.field{margin-bottom:21px}.hint{font-size:12px;color:#78867f;margin-top:6px}button,.download{font:inherit;border:0;border-radius:10px;padding:14px 20px;font-weight:600;background:#176958;color:white;width:100%;cursor:pointer;text-align:center;text-decoration:none;display:block}button:disabled{opacity:.55;cursor:wait}fieldset{border:0;margin:0;padding:0;min-width:0}.note{background:#f0f5f2;border-radius:10px;padding:13px;font-size:12px;line-height:1.6;margin-bottom:22px;color:#566b60}.state{min-height:290px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}.icon{width:62px;height:62px;border-radius:50%;background:#edf4f0;color:#176958;display:grid;place-items:center;font-size:28px;margin-bottom:20px}.state p{font-size:14px;max-width:310px;margin:10px 0 20px}.status-title{font-size:19px;font-weight:650}.timer{font-variant-numeric:tabular-nums;color:#176958;font-size:22px;margin:8px 0}.spin{animation:turn 2s linear infinite}@keyframes turn{to{transform:rotate(360deg)}}#download{margin-top:15px}#preview{white-space:pre-wrap;max-height:280px;overflow:auto;font:13px/1.7 system-ui;text-align:left;color:#344d43}details{margin-top:20px}summary{cursor:pointer;color:#176958;font-size:13px}footer{margin-top:26px;font-size:12px;color:#738179}a{color:#176958}[hidden]{display:none!important}@media(max-width:720px){.grid{grid-template-columns:1fr}main{padding:32px 18px}.panel{padding:24px}.tag{display:none}}
 </style>
-<header><span class="brand">≡</span><strong>Протоколы встреч</strong><span class="tag">Локальная страница · обработка в n8n</span></header>
-<main><div class="eyebrow">Zoom → готовый документ</div><h1>Планёрка — в протокол.</h1><p>Укажите номер встречи и дату. Скачайте протокол и транскрибацию одним ZIP-архивом.</p>
+<header><span class="brand">≡</span><strong>Протоколы встреч</strong><span class="tag">Записи Zoom · время Екатеринбурга</span></header>
+<main><div class="eyebrow">Zoom → готовый документ</div><h1>Планёрка — в протокол.</h1><p>Выберите дату и планёрку из списка записей Zoom. Скачайте протокол и транскрибацию одним ZIP-архивом.</p>
 <div class="grid"><section class="panel"><h2>Параметры планёрки</h2><form id="form"><fieldset id="fields">
-<div class="field"><label for="meeting">Номер встречи Zoom</label><input id="meeting" inputmode="numeric" placeholder="899 2967 3357" autocomplete="off" required><div class="hint">9–11 цифр. Пробелы и дефисы уберём автоматически.</div></div>
-<div class="field"><label for="date">Дата планёрки</label><input id="date" type="date" required></div>
+<div class="field"><label for="date">Дата планёрки</label><input id="date" type="date" required><div class="hint">Дата и время записей — по Екатеринбургу (UTC+5).</div></div>
+<button type="button" id="loadMeetings" style="margin-bottom:18px;background:#edf4f0;color:#176958">Найти планёрки</button>
+<div class="field"><label for="meeting">Записанная планёрка</label><select id="meeting" required disabled><option value="">Сначала выберите дату и нажмите «Найти планёрки»</option></select><div class="hint" id="listHint" role="status" aria-live="polite">Показываем записи длительностью больше 5 минут.</div><div class="hint" id="meetingInfo" hidden></div></div>
 <div class="field"><label for="transcriptionMode">Способ расшифровки</label><select id="transcriptionMode"><option value="combined">По общему аудио с расшифровкой Zoom</option><option value="tracks">По аудиодорожкам говорящих</option></select><div class="hint" id="methodHint">Общая запись встречи и расшифровка Zoom для сопоставления говорящих.</div></div>
 <div class="note">Выберите способ обработки и нажмите «Создать протокол». Воркфлоу в n8n должен быть опубликован/активирован.</div>
-<button type="submit" id="submit">Создать протокол →</button></fieldset></form><button type="button" id="recover" style="margin-top:12px;background:#edf4f0;color:#176958">Найти результат по номеру обработки</button></section>
+<button type="submit" id="submit" disabled>Создать протокол →</button></fieldset></form><button type="button" id="recover" style="margin-top:12px;background:#edf4f0;color:#176958">Найти результат по номеру обработки</button></section>
 <section class="panel"><h2>Результат</h2><div class="state" role="status" aria-live="polite"><div class="icon" id="icon">↓</div><div class="status-title" id="title">Здесь появится ваш файл</div><p id="message">Заполните параметры слева и запустите создание протокола.</p><div class="timer" id="timer" hidden>00:00</div><a class="download" id="download" hidden>Скачать протокол и транскрибацию .zip</a></div><p id="jobId" hidden style="font-size:11px;overflow-wrap:anywhere;user-select:all;margin-bottom:14px"></p><button id="retry" hidden type="button" style="margin:12px 0">Проверить готовность снова</button><button id="newJob" hidden type="button" style="background:#edf4f0;color:#176958">Другая планёрка</button><details id="details" hidden><summary>Посмотреть текст</summary><pre id="preview"></pre></details></section></div>
 <footer>Ожидание не держит одно соединение: готовность проверяется каждые 10 секунд. Номер обработки сохраняется в этом браузере.<br>После повторного открытия страницы проверка продолжится. Не очищайте данные сайта до скачивания результата.<br>Если результат долго не появляется, проверьте Executions в n8n: отсутствие архива само по себе не подтверждает, что обработка ещё идёт.</footer></main>
 <script>
@@ -20,8 +21,61 @@ const $=id=>document.getElementById(id);
 const STORAGE='zoom-protocol-async-v1';
 const START_URL='https://n8n.transport1.ru/webhook/zoom-protocol';
 const STATUS_URL='https://n8n.transport1.ru/webhook/zoom-protocol-status';
+const LIST_URL='https://n8n.transport1.ru/webhook/zoom-protocol-meetings';
 let job=null,polling=false,pollTimer=null,clock=null,objectUrl=null,startConfirmed=false;
-const today=new Date();$('date').value=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
+const localDay=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Yekaterinburg',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+const datePart=type=>localDay.find(p=>p.type===type).value;
+$('date').value=datePart('year')+'-'+datePart('month')+'-'+datePart('day');
+let availableMeetings=[],loadedDate='',listRequest=0,listAbort=null;
+const displayTime=value=>new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Yekaterinburg',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value));
+function resetMeetings(message='Выберите дату и нажмите «Найти планёрки».'){
+  availableMeetings=[];loadedDate='';$('meeting').replaceChildren(new Option('Выберите планёрку',''));
+  $('meeting').disabled=true;$('submit').disabled=true;$('meetingInfo').hidden=true;$('listHint').textContent=message;
+}
+function showMeeting(){
+  const selected=availableMeetings.find(m=>m.meeting_uuid===$('meeting').value);
+  $('submit').disabled=!selected||loadedDate!==$('date').value;
+  $('meetingInfo').hidden=!selected;
+  if(selected)$('meetingInfo').textContent='Zoom ID: '+selected.meeting_id+' · '+displayTime(selected.start_time)+' · '+selected.duration+' мин';
+}
+$('date').onchange=()=>{listRequest++;listAbort?.abort();$('loadMeetings').disabled=false;resetMeetings();};
+$('meeting').onchange=showMeeting;
+async function loadMeetings(){
+  if(job)return;
+  const date=$('date').value;
+  if(!date||!$('date').checkValidity()){$('date').reportValidity();return;}
+  const current=++listRequest;listAbort?.abort();listAbort=new AbortController();
+  const controller=listAbort;const timeout=setTimeout(()=>controller.abort(),60000);
+  resetMeetings('Загружаем записи Zoom…');$('loadMeetings').disabled=true;
+  try{
+    const found=new Map(),seenCursors=new Set();let cursor='',pages=0;
+    do{
+      const query=new URLSearchParams({date});if(cursor)query.set('next_page_token',cursor);
+      const response=await fetch(LIST_URL+'?'+query,{credentials:'omit',cache:'no-store',signal:controller.signal});
+      let data;try{data=await response.json();}catch{throw new Error('Список планёрок вернулся не в формате JSON. Проверьте публикацию воркфлоу списка.');}
+      if(!response.ok||data.ok!==true)throw new Error(data.error||'Не удалось получить записи Zoom: HTTP '+response.status);
+      if(data.date!==date||!Array.isArray(data.meetings))throw new Error('Неверный формат списка или дата ответа.');
+      for(const m of data.meetings){
+        if(typeof m.meeting_uuid!=='string'||!m.meeting_uuid||!/^\d{9,11}$/.test(String(m.meeting_id))||!Number.isFinite(Date.parse(m.start_time))||!Number.isFinite(m.duration)||m.duration<=5)throw new Error('В списке Zoom получены некорректные данные встречи.');
+        found.set(m.meeting_uuid,m);
+      }
+      cursor=data.next_page_token||'';pages++;
+      if(cursor){if(seenCursors.has(cursor)||pages>=100)throw new Error('Не удалось получить весь список. Попробуйте загрузить записи ещё раз.');seenCursors.add(cursor);}
+    }while(cursor);
+    if(current!==listRequest||job||$('date').value!==date)return;
+    availableMeetings=[...found.values()].sort((a,b)=>Date.parse(a.start_time)-Date.parse(b.start_time));loadedDate=date;
+    $('meeting').replaceChildren(new Option(availableMeetings.length?'Выберите планёрку':'Записей не найдено',''));
+    for(const m of availableMeetings){
+      $('meeting').add(new Option(displayTime(m.start_time)+' · '+m.topic+' · '+m.duration+' мин · ID '+m.meeting_id,m.meeting_uuid));
+    }
+    $('meeting').disabled=!availableMeetings.length;
+    $('listHint').textContent=availableMeetings.length?'Найдено: '+availableMeetings.length+'. Выберите нужную запись.':'За этот день нет облачных записей длиннее 5 минут. Проверьте дату или повторите позже.';
+  }catch(error){
+    if(current!==listRequest)return;
+    resetMeetings(error.name==='AbortError'?'Загрузка списка заняла слишком много времени. Нажмите «Найти планёрки» ещё раз.':error instanceof TypeError?'Не удалось связаться с n8n. Проверьте воркфлоу списка и Allowed Origins (CORS).':error.message);
+  }finally{clearTimeout(timeout);if(current===listRequest)$('loadMeetings').disabled=false;}
+}
+$('loadMeetings').onclick=loadMeetings;
 $('transcriptionMode').onchange=()=>{$('methodHint').textContent=$('transcriptionMode').value==='tracks'?'Отдельные аудиозаписи участников встречи.':'Общая запись встречи и расшифровка Zoom для сопоставления говорящих.';};
 function persist(){try{localStorage.setItem(STORAGE,JSON.stringify(job));}catch{}}
 function busyUI(){
@@ -42,7 +96,7 @@ async function api(path,options={}){
       // A form request keeps fields in Webhook body without CORS preflight.
       const payload=JSON.parse(options.body);
       request.body=new URLSearchParams({
-        meeting_id:payload.meeting_id,date:payload.date,
+        meeting_id:payload.meeting_id,meeting_uuid:payload.meeting_uuid||'',date:payload.date,
         transcription_mode:payload.transcription_mode,job_id:payload.job_id
       });
     }
@@ -92,7 +146,7 @@ async function poll(){
 $('retry').onclick=()=>{if(!job)return;clearTimeout(pollTimer);polling=true;$('icon').classList.add('spin');poll();};
 $('newJob').onclick=()=>{
   if(!confirm('Открыть форму новой планёрки? Текущая обработка в n8n не остановится. Перед продолжением сохраните её номер, чтобы при необходимости получить результат позже.'))return;
-  stop();try{localStorage.removeItem(STORAGE);}catch{}job=null;startConfirmed=false;$('fields').disabled=false;$('download').hidden=true;$('retry').hidden=true;$('newJob').hidden=true;$('timer').hidden=true;$('jobId').hidden=true;$('icon').textContent='↓';$('title').textContent='Новая планёрка';$('message').textContent='Укажите параметры и запустите обработку.';
+  stop();try{localStorage.removeItem(STORAGE);}catch{}job=null;startConfirmed=false;$('fields').disabled=false;$('download').hidden=true;$('retry').hidden=true;$('newJob').hidden=true;$('timer').hidden=true;$('jobId').hidden=true;$('icon').textContent='↓';$('title').textContent='Новая планёрка';$('message').textContent='Выберите дату, загрузите список и выберите планёрку.';resetMeetings();
 };
 $('recover').onclick=()=>{
   const id=prompt('Вставьте номер обработки (job_id), полученный на этом сайте:');
@@ -100,14 +154,14 @@ $('recover').onclick=()=>{
   stop();job={job_id:id.trim(),meeting_id:'восстановлена',date:$('date').value,transcription_mode:$('transcriptionMode').value,started:Date.now()};startConfirmed=false;persist();busyUI();polling=true;poll();
 };
 $('form').onsubmit=async event=>{
-  event.preventDefault();if(job)return;const meeting=$('meeting').value.replace(/[\s-]/g,'');
-  if(!/^\d{9,11}$/.test(meeting)){$('meeting').setCustomValidity('Введите номер Zoom: 9–11 цифр.');$('meeting').reportValidity();return;}
-  job={job_id:crypto.randomUUID(),meeting_id:meeting,date:$('date').value,transcription_mode:$('transcriptionMode').value,started:Date.now()};persist();busyUI();$('title').textContent='Запускаем обработку';
+  event.preventDefault();if(job)return;
+  const selected=availableMeetings.find(m=>m.meeting_uuid===$('meeting').value);
+  if(!selected||loadedDate!==$('date').value){$('listHint').textContent='Загрузите список за выбранную дату и выберите планёрку.';return;}
+  job={job_id:crypto.randomUUID(),meeting_id:String(selected.meeting_id),meeting_uuid:selected.meeting_uuid,meeting_topic:selected.topic,date:$('date').value,transcription_mode:$('transcriptionMode').value,started:Date.now()};persist();busyUI();$('title').textContent='Запускаем обработку';
   try{await api('/api/start',{method:'POST',body:JSON.stringify(job)});startConfirmed=true;}
   catch(error){$('title').textContent='Подтверждение запуска не получено';$('message').textContent=error.message+' Автоматический повтор запуска отключён: обработка могла начаться. Проверяем готовность по сохранённому номеру.';$('retry').hidden=false;}
   polling=true;pollTimer=setTimeout(poll,3000);
 };
-$('meeting').oninput=()=>$('meeting').setCustomValidity('');
-try{const saved=JSON.parse(localStorage.getItem(STORAGE)||'null');if(saved&&/^[0-9a-f-]{36}$/.test(saved.job_id)&&Number.isFinite(saved.started)){job=saved;$('meeting').value=saved.meeting_id;$('date').value=saved.date;$('transcriptionMode').value=saved.transcription_mode;busyUI();polling=true;poll();}}catch{}
+try{const saved=JSON.parse(localStorage.getItem(STORAGE)||'null');if(saved&&/^[0-9a-f-]{36}$/.test(saved.job_id)&&Number.isFinite(saved.started)){job=saved;$('meeting').replaceChildren(new Option(saved.meeting_topic||('Планёрка '+saved.meeting_id),saved.meeting_uuid||saved.meeting_id));$('meeting').value=saved.meeting_uuid||saved.meeting_id;$('date').value=saved.date;$('transcriptionMode').value=saved.transcription_mode;busyUI();polling=true;poll();}}catch{}
 
 </script></html>
