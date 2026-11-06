@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Протокол планёрки</title>
+<style>
+:root{font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;color:#182b33;background:#f3f5f4}*{box-sizing:border-box}body{margin:0}header{border-bottom:1px solid #dce3df;padding:22px max(24px,calc((100vw - 1080px)/2));display:flex;align-items:center;gap:12px;background:#fff}.brand{background:#176958;color:white;border-radius:12px;width:38px;height:38px;display:grid;place-items:center;font-size:22px}.tag{margin-left:auto;font-size:12px;color:#63736e}main{max-width:1080px;padding:54px 24px;margin:auto}.eyebrow{letter-spacing:2px;text-transform:uppercase;font-size:11px;font-weight:700;color:#176958}h1{font-size:clamp(30px,5vw,44px);line-height:1.16;letter-spacing:-1.5px;margin:12px 0}p{color:#63736e;margin:12px 0 28px}.grid{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;margin-top:32px}.panel{background:white;border:1px solid #dce3df;border-radius:20px;padding:30px}h2{font-size:18px;margin:0 0 24px}label{display:block;font-size:14px;font-weight:600;margin-bottom:7px}input,select{width:100%;font:inherit;border:1px solid #cbd7d1;border-radius:10px;background:#fff;padding:13px;color:#182b33}input:focus,select:focus{outline:3px solid #b9ddd0;border-color:#176958}.field{margin-bottom:21px}.hint{font-size:12px;color:#78867f;margin-top:6px}button,.download{font:inherit;border:0;border-radius:10px;padding:14px 20px;font-weight:600;background:#176958;color:white;width:100%;cursor:pointer;text-align:center;text-decoration:none;display:block}button:disabled{opacity:.55;cursor:wait}fieldset{border:0;margin:0;padding:0;min-width:0}.note{background:#f0f5f2;border-radius:10px;padding:13px;font-size:12px;line-height:1.6;margin-bottom:22px;color:#566b60}.state{min-height:290px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}.icon{width:62px;height:62px;border-radius:50%;background:#edf4f0;color:#176958;display:grid;place-items:center;font-size:28px;margin-bottom:20px}.state p{font-size:14px;max-width:310px;margin:10px 0 20px}.status-title{font-size:19px;font-weight:650}.timer{font-variant-numeric:tabular-nums;color:#176958;font-size:22px;margin:8px 0}.spin{animation:turn 2s linear infinite}@keyframes turn{to{transform:rotate(360deg)}}#download{margin-top:15px}#preview{white-space:pre-wrap;max-height:280px;overflow:auto;font:13px/1.7 system-ui;text-align:left;color:#344d43}details{margin-top:20px}summary{cursor:pointer;color:#176958;font-size:13px}footer{margin-top:26px;font-size:12px;color:#738179}a{color:#176958}[hidden]{display:none!important}@media(max-width:720px){.grid{grid-template-columns:1fr}main{padding:32px 18px}.panel{padding:24px}.tag{display:none}}
+</style>
+<header><span class="brand">≡</span><strong>Протоколы встреч</strong><span class="tag">Локальная страница · обработка в n8n</span></header>
+<main><div class="eyebrow">Zoom → готовый документ</div><h1>Планёрка — в протокол.</h1><p>Укажите номер встречи и дату. Скачайте протокол и транскрибацию одним ZIP-архивом.</p>
+<div class="grid"><section class="panel"><h2>Параметры планёрки</h2><form id="form"><fieldset id="fields">
+<div class="field"><label for="meeting">Номер встречи Zoom</label><input id="meeting" inputmode="numeric" placeholder="899 2967 3357" autocomplete="off" required><div class="hint">9–11 цифр. Пробелы и дефисы уберём автоматически.</div></div>
+<div class="field"><label for="date">Дата планёрки</label><input id="date" type="date" required></div>
+<div class="field"><label for="transcriptionMode">Способ расшифровки</label><select id="transcriptionMode"><option value="combined">По общему аудио с расшифровкой Zoom</option><option value="tracks">По аудиодорожкам говорящих</option></select><div class="hint" id="methodHint">Общая запись встречи и расшифровка Zoom для сопоставления говорящих.</div></div>
+<div class="note">Выберите способ обработки и нажмите «Создать протокол». Воркфлоу в n8n должен быть опубликован/активирован.</div>
+<button type="submit" id="submit">Создать протокол →</button></fieldset></form><button type="button" id="recover" style="margin-top:12px;background:#edf4f0;color:#176958">Найти результат по номеру обработки</button></section>
+<section class="panel"><h2>Результат</h2><div class="state" role="status" aria-live="polite"><div class="icon" id="icon">↓</div><div class="status-title" id="title">Здесь появится ваш файл</div><p id="message">Заполните параметры слева и запустите создание протокола.</p><div class="timer" id="timer" hidden>00:00</div><a class="download" id="download" hidden>Скачать протокол и транскрибацию .zip</a></div><p id="jobId" hidden style="font-size:11px;overflow-wrap:anywhere;user-select:all;margin-bottom:14px"></p><button id="retry" hidden type="button" style="margin:12px 0">Проверить готовность снова</button><button id="newJob" hidden type="button" style="background:#edf4f0;color:#176958">Другая планёрка</button><details id="details" hidden><summary>Посмотреть текст</summary><pre id="preview"></pre></details></section></div>
+<footer>Ожидание не держит одно соединение: готовность проверяется каждые 10 секунд. Номер обработки сохраняется в этом браузере.<br>После перезапуска START.bat откройте страницу — проверка продолжится. Не очищайте данные сайта до скачивания результата.<br>Если результат долго не появляется, проверьте Executions в n8n: отсутствие архива само по себе не подтверждает, что обработка ещё идёт.</footer></main>
+<script>
+const $=id=>document.getElementById(id);
+const TOKEN='__LOCAL_TOKEN__', STORAGE='zoom-protocol-async-v1';
+let job=null,polling=false,pollTimer=null,clock=null,objectUrl=null,startConfirmed=false;
+const today=new Date();$('date').value=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
+$('transcriptionMode').onchange=()=>{$('methodHint').textContent=$('transcriptionMode').value==='tracks'?'Отдельные аудиозаписи участников встречи.':'Общая запись встречи и расшифровка Zoom для сопоставления говорящих.';};
+function persist(){try{localStorage.setItem(STORAGE,JSON.stringify(job));}catch{}}
+function busyUI(){
+  $('fields').disabled=true;$('download').hidden=true;$('details').hidden=true;$('retry').hidden=true;
+  $('newJob').hidden=false;$('timer').hidden=false;$('icon').textContent='◌';$('icon').classList.add('spin');
+  $('jobId').textContent='Номер обработки: '+job.job_id;$('jobId').hidden=false;
+  $('title').textContent='Ожидаем результат';$('message').textContent='Проверяем, сохранён ли готовый архив. Страницу можно обновлять — новый запуск не создастся.';
+  clearInterval(clock);const tick=()=>{const sec=Math.max(0,Math.floor((Date.now()-job.started)/1000));$('timer').textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');};tick();clock=setInterval(tick,1000);
+}
+async function api(url,options={}){
+  const response=await fetch(url,{...options,headers:{'Content-Type':'application/json','X-Local-Token':TOKEN,...(options.headers||{})}});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||'Ошибка локального приложения.');return data;
+}
+function stop(){polling=false;clearTimeout(pollTimer);clearInterval(clock);$('icon').classList.remove('spin');}
+function renderFile(data){
+  stop();const bytes=Uint8Array.from(atob(data.file_base64),c=>c.charCodeAt(0));
+  if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(new Blob([bytes],{type:'application/zip'}));
+  $('download').href=objectUrl;$('download').download='Планёрка_'+job.meeting_id+'_'+job.date+'_'+job.transcription_mode+'.zip';$('download').textContent='Скачать протокол и транскрибацию .zip';$('download').hidden=false;
+  $('title').textContent='Протокол и транскрибация готовы';$('message').textContent='Скачайте архив и распакуйте его. При обновлении страницы файл можно будет получить снова.';$('icon').textContent='✓';$('retry').hidden=true;
+}
+async function poll(){
+  if(!polling||!job)return;
+  try{
+    const data=await api('/api/status?job_id='+encodeURIComponent(job.job_id));
+    if(data.status==='completed'){renderFile(data);return;}
+    if(data.status==='failed'){stop();$('title').textContent='Ошибка обработки в n8n';$('message').textContent=data.error||'Проверьте Executions в n8n.';$('icon').textContent='!';$('retry').hidden=false;return;}
+    $('title').textContent='Ожидаем готовый архив';
+    $('message').textContent=startConfirmed?'Запуск подтверждён. Готовый архив ещё не сохранён. Проверяем каждые 10 секунд. Если в n8n выполнение завершилось ошибкой, проверьте Executions.':'Проверяем готовность по сохранённому номеру. Архива пока нет. Если запуск не начался или завершился ошибкой, проверьте Executions в n8n.';
+  }catch(error){$('title').textContent='Не удалось проверить готовность';$('message').textContent=error instanceof TypeError?'Нет связи с локальным приложением. Проверьте окно START.bat. Проверка повторится автоматически.':error.message;$('retry').hidden=false;}
+  if(Date.now()-job.started>=2*60*60*1000){stop();$('title').textContent='Архив пока не получен';$('message').textContent='Автопроверка приостановлена через 2 часа. Проверьте Executions в n8n. Кнопка ниже повторит только проверку готовности, без нового запуска.';$('icon').textContent='!';$('retry').hidden=false;return;}
+  if(polling)pollTimer=setTimeout(poll,10000);
+}
+$('retry').onclick=()=>{if(!job)return;clearTimeout(pollTimer);polling=true;$('icon').classList.add('spin');poll();};
+$('newJob').onclick=()=>{
+  if(!confirm('Открыть форму новой планёрки? Текущая обработка в n8n не остановится. Перед продолжением сохраните её номер, чтобы при необходимости получить результат позже.'))return;
+  stop();try{localStorage.removeItem(STORAGE);}catch{}job=null;startConfirmed=false;$('fields').disabled=false;$('download').hidden=true;$('retry').hidden=true;$('newJob').hidden=true;$('timer').hidden=true;$('jobId').hidden=true;$('icon').textContent='↓';$('title').textContent='Новая планёрка';$('message').textContent='Укажите параметры и запустите обработку.';
+};
+$('recover').onclick=()=>{
+  const id=prompt('Вставьте номер обработки (job_id), полученный на этом сайте:');
+  if(!id)return;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id.trim())){alert('Неверный формат номера обработки.');return;}
+  stop();job={job_id:id.trim(),meeting_id:'восстановлена',date:$('date').value,transcription_mode:$('transcriptionMode').value,started:Date.now()};startConfirmed=false;persist();busyUI();polling=true;poll();
+};
+$('form').onsubmit=async event=>{
+  event.preventDefault();if(job)return;const meeting=$('meeting').value.replace(/[\s-]/g,'');
+  if(!/^\d{9,11}$/.test(meeting)){$('meeting').setCustomValidity('Введите номер Zoom: 9–11 цифр.');$('meeting').reportValidity();return;}
+  job={job_id:crypto.randomUUID(),meeting_id:meeting,date:$('date').value,transcription_mode:$('transcriptionMode').value,started:Date.now()};persist();busyUI();$('title').textContent='Запускаем обработку';
+  try{await api('/api/start',{method:'POST',body:JSON.stringify(job)});startConfirmed=true;}
+  catch(error){$('title').textContent='Подтверждение запуска не получено';$('message').textContent=error.message;$('retry').hidden=false;}
+  polling=true;pollTimer=setTimeout(poll,3000);
+};
+$('meeting').oninput=()=>$('meeting').setCustomValidity('');
+try{const saved=JSON.parse(localStorage.getItem(STORAGE)||'null');if(saved&&/^[0-9a-f-]{36}$/.test(saved.job_id)&&Number.isFinite(saved.started)){job=saved;$('meeting').value=saved.meeting_id;$('date').value=saved.date;$('transcriptionMode').value=saved.transcription_mode;busyUI();polling=true;poll();}}catch{}
+
+</script></html>
