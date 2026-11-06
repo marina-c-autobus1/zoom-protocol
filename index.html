@@ -165,3 +165,4 @@ $('form').onsubmit=async event=>{
 try{const saved=JSON.parse(localStorage.getItem(STORAGE)||'null');if(saved&&/^[0-9a-f-]{36}$/.test(saved.job_id)&&Number.isFinite(saved.started)){job=saved;$('meeting').replaceChildren(new Option(saved.meeting_topic||('Планёрка '+saved.meeting_id),saved.meeting_uuid||saved.meeting_id));$('meeting').value=saved.meeting_uuid||saved.meeting_id;$('date').value=saved.date;$('transcriptionMode').value=saved.transcription_mode;busyUI();polling=true;poll();}}catch{}
 
 </script></html>
+
